@@ -53,25 +53,19 @@ clang example1.c \
 
 So many flags! Lets go through them.
 
-`--target=wasm32-unknown-unknown-wasm` tells the compiler/linker to produce
-wasm.
-
-`--optimize=3` seems to ne necessary to produce valid wasm. I don't know why,
-and I might be wrong.
-
-`-nostdlib` tells the compiler/linker that we don't have a standard library,
-which is very sad.
-
-`-Wl,--export-all` tells the linker to export anything it can.
-
-`-Wl,--no-entry` tells the linker that there's no main; this is just a library.
-
-`-Wl,--allow-undefined` tells the linked to allow the code to access functions
-and variables that have not been defined. We'll need to provide them when we
-instantiate the WebAssembly instance. This won't be used in this example, but
-we'll need it later.
-
-`--output example1.wasm` does what it says on the tin.
+* `--target=wasm32-unknown-unknown-wasm` tells the compiler/linker to produce
+  wasm.
+* `--optimize=3` seems to ne necessary to produce valid wasm. I don't know why,
+  and I might be wrong.
+* `-nostdlib` tells the compiler/linker that we don't have a standard library,
+  which is very sad.
+* `-Wl,--export-all` tells the linker to export anything it can.
+* `-Wl,--no-entry` tells the linker that there's no main; this is just a library.
+* `-Wl,--allow-undefined` tells the linked to allow the code to access functions
+  and variables that have not been defined. We'll need to provide them when we
+  instantiate the WebAssembly instance. This won't be used in this example, but
+  we'll need it later.
+* `--output example1.wasm` does what it says on the tin.
 
 If all went well you now have an `example.wasm` file.
 
