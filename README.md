@@ -1,4 +1,4 @@
-# How to Pass Arrays Between JavaScript and WebAssembly Written in C
+# How to Pass Arrays Between JavaScript and WebAssembly Modules Written in C
 
 In this blog I'll demonstrate some ways of passing arrays between JavaScript
 and WebAssembly. The source code is [here](https://github.com/rob-blackbourn/example-wasm-array-passing).
