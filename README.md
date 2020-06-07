@@ -12,14 +12,20 @@ and [wabt 1.0.16](https://github.com/WebAssembly/wabt) on Ubuntu 18.04.
 I installed `clang` in `/opt/clang`, `wabt` in `/opt/wabt`, and I use
 [nodenv](https://github.com/nodenv/nodenv) to manage my `nodejs` environment.
 
-## Hello, World!
+Update your path.
+
+```bash
+export PATH=/opt/clang/bin:/opt/wabt/bin:$PATH
+```
+
+## No Hello, World?
 
 Sadly the typically hello world example is tricky for WebAssembly; so we'll do
-the traditional "add two numbers" instead.
+a traditional "add two numbers" instead.
 
 ### Write the C code
 
-Start by writing the C code in the file `example.c`
+Start by writing the C code in the file `example1.c`
 
 ```c
 __attribute__((used)) int addTwoInts (int a, int b) {
@@ -27,7 +33,7 @@ __attribute__((used)) int addTwoInts (int a, int b) {
 }
 ```
 
-This looks pretty vanilla aprt from `__attribute__((used))`. This appears to
+This looks pretty vanilla apart from `__attribute__((used))`. This appears to
 mark the function as something that can be exported from the module.
 
 ### Build the wasm module.
@@ -35,7 +41,7 @@ mark the function as something that can be exported from the module.
 Now lets compile.
 
 ```bash
-/opt/clang/bin/clang example1.c \
+clang example1.c \
   --target=wasm32-unknown-unknown-wasm \
   --optimize=3 \
   -nostdlib \
@@ -50,7 +56,7 @@ So many flags! Lets go through them.
 `--target=wasm32-unknown-unknown-wasm` tells the compiler/linker to produce
 wasm.
 
-`--optimize=3` seems to ne necessary to produce valib wasm. I don't know why,
+`--optimize=3` seems to ne necessary to produce valid wasm. I don't know why,
 and I might be wrong.
 
 `-nostdlib` tells the compiler/linker that we don't have a standard library,
@@ -129,7 +135,7 @@ We can look at the WebAssembly text (or `wat`) with the `wabt` tool `wasm2wat`.
 To produce this we need to do the following.
 
 ```bash
-/opt/wabt/bin/wasm2wat example2.wasm -o example2.wat
+wasm2wat example2.wasm -o example2.wat
 ```
 
 The `example2.wat` file should look like this (edited for readability).
