@@ -71,7 +71,7 @@ If all went well you now have an `example.wasm` file.
 
 ### Write the JavaScript
 
-Write a JavaScript file `example.js` with the following content.
+Write a JavaScript file `example1.js` with the following content.
 
 ```javascript
 const fs = require('fs')
