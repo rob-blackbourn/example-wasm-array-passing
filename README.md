@@ -356,8 +356,8 @@ To do that we need to provided some memory management.
 ## Understanding wasm memory management
 
 As we have seen, wasm memory is managed in JavaScript through the
-(`WebAssembly.Memory`)[https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/WebAssembly/Memory]
-object. This has a `buffer` which is an (`ArrayBuffer`)[https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer]. The buffer has a `byteLength` property, which gives us the
+[`WebAssembly.Memory`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/WebAssembly/Memory)
+object. This has a `buffer` which is an [`ArrayBuffer`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer). The buffer has a `byteLength` property, which gives us the
 upper bound of the memory.
 
 It also has a `grow` method which can be used to get more memory.
