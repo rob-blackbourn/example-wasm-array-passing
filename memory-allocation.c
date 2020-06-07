@@ -215,7 +215,7 @@ __attribute__((used)) void freeMemory(void *ptr)
   }
 }
 
-__attribute__((used)) double reportFreeMemory(void *ptr)
+__attribute__((used)) double reportFreeMemory()
 {
   ensureInitialised();
 

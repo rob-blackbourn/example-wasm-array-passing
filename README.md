@@ -1,7 +1,7 @@
 # How to Pass Arrays Between JavaScript and WebAssembly Written in C
 
 In this blog I'll demonstrate some ways of passing arrays between JavaScript
-and WebAssembly.
+and WebAssembly. The source code is [here](https://github.com/rob-blackbourn/example-wasm-array-passing).
 
 ## Prerequisites
 
@@ -432,3 +432,229 @@ and asking for more.
 
 ## Passing arrays from wasm to JavaScript
 
+First we need some C code to perform memory management. I wrote a trivial
+implementation of `malloc` which can be found [here](https://github.com/rob-blackbourn/example-wasm-array-passing/blob/master/memory-allocation.c).
+Copy this file to the work folder as `memory-allocation.c` The code provides
+three functions.
+
+```c
+void *allocateMemory (unsigned bytes_required);
+void freeMemory(void *memory_to_free);
+double reportFreeMemory()
+```
+
+Obviously it's stupid to write your own `malloc`. Rob bad.
+
+### Write the C code
+
+Write a file `example5.c` with the following contents.
+
+```c
+extern void *allocateMemory(unsigned bytes_required);
+
+__attribute__((used)) int* addArrays (int *array1, int* array2, int length)
+{
+  int* result = allocateMemory(length * sizeof(int));
+
+  for (int i = 0; i < length; ++i) {
+    result[i] = array1[i] + array2[i];
+  }
+
+  return result;
+}
+```
+
+The code is similar to the previous example, but instead of taking in a result
+array, it creates and returns the array itself.
+
+### Write the JavaScript
+
+Write a file called `example5.js` containing the following code.
+
+```javascript
+const fs = require('fs')
+
+/*
+ * A simple memory manager.
+ */
+class MemoryManager {
+  // The WebAssembly.Memory object for the instance.
+  memory = null
+
+  // Return the buffer length in bytes.
+  memoryBytesLength() {
+    return this.memory.buffer.byteLength
+  }
+
+  // Grow the memory by the requested blocks, returning the new buffer length
+  // in bytes.
+  grow(blocks) {
+    this.memory.grow(blocks)
+    return this.memory.buffer.byteLength
+  }
+}
+
+async function main() {
+  // Read the wasm file.
+  const buf = fs.readFileSync('./example5.wasm')
+
+  // Create an object to manage the memory.
+  const memoryManager = new MemoryManager()
+
+  // Instantiate the wasm module.
+  const res = await WebAssembly.instantiate(buf, {
+    env: {
+      // The wasm module calls this function to grow the memory
+      grow: function(blocks) {
+        memoryManager.grow(blocks)
+      },
+      // The wasm module calls this function to get the current memory size.
+      memoryBytesLength: function() {
+        memoryManager.memoryBytesLength()
+      }
+    }
+  })
+
+  // Get the memory exports from the wasm instance.
+  const {
+    memory,
+    allocateMemory,
+    freeMemory,
+    reportFreeMemory
+  } = res.instance.exports
+
+  // Give the memory manager access to the instances memory.
+  memoryManager.memory = memory
+
+  // How many free bytes are there?
+  const startFreeMemoryBytes = reportFreeMemory()
+  console.log(`There are ${startFreeMemoryBytes} bytes of free memory`)
+
+  // Get the exported array function.
+  const {
+    addArrays
+  } = res.instance.exports
+
+  // Make the arrays to pass into the wasm function using allocateMemory.
+  const length = 5
+  const bytesLength = length * Int32Array.BYTES_PER_ELEMENT
+
+  const array1 = new Int32Array(memory.buffer, allocateMemory(bytesLength), length)
+  array1.set([1, 2, 3, 4, 5])
+
+  const array2 = new Int32Array(memory.buffer, allocateMemory(bytesLength), length)
+  array2.set([6, 7, 8, 9, 10])
+
+  // Add the arrays. The result is the memory pointer to the result array.
+  result = new Int32Array(
+    memory.buffer,
+    addArrays(array1.byteOffset, array2.byteOffset, length),
+    length)
+
+  console.log(`[${array1.join(", ")}] + [${array2.join(", ")}] = [${result.join(", ")}]`)
+
+  // Show that some memory has been used.
+  pctFree = 100 * reportFreeMemory() / startFreeMemoryBytes
+  console.log(`Free memory ${pctFree}%`)
+
+  // Free the memory.
+  freeMemory(array1.byteOffset)
+  freeMemory(array2.byteOffset)
+  freeMemory(result.byteOffset)
+
+  // Show that all the memory has been released.
+  pctFree = 100 * reportFreeMemory() / startFreeMemoryBytes
+  console.log(`Free memory ${pctFree}%`)
+}
+
+main().then(() => console.log('Done'))
+```
+
+That's a lot of code!
+
+Let's get started with the memory management. The script starts declaring a
+`MemoryManagement` class.
+
+```javascript
+class MemoryManager {
+  // The WebAssembly.Memory object for the instance.
+  memory = null
+
+  // Return the buffer length in bytes.
+  memoryBytesLength() {
+    return this.memory.buffer.byteLength
+  }
+
+  // Grow the memory by the requested blocks, returning the new buffer length
+  // in bytes.
+  grow(blocks) {
+    this.memory.grow(blocks)
+    return this.memory.buffer.byteLength
+  }
+}
+```
+
+Once the `memory` property has been set it can provide the length in bytes of
+the memory, and it can grow the memory for a given number of blocks returning
+the new memory length in bytes.
+
+We pass the functions when creating the wasm instance, and assign the memory
+object once to instance is created.
+
+```javascript
+  const memoryManager = new MemoryManager()
+
+  const res = await WebAssembly.instantiate(buf, {
+    env: {
+      grow: function(blocks) {
+        memoryManager.grow(blocks)
+      },
+      memoryBytesLength: function() {
+        memoryManager.memoryBytesLength()
+      }
+    }
+  })
+
+  memoryManager.memory = res.instance.exports.memory
+```
+
+When we create the arrays we use the memory allocator.
+
+```javascript
+const array1 = new Int32Array(memory.buffer, allocateMemory(bytesLength), length)
+```
+
+The memory gets freed with the complimentary function near the end of the
+script.
+
+```javascript
+freeMemory(array1.byteOffset)
+```
+
+Finally we can call our function and get the results.
+
+```javascript
+result = new Int32Array(
+  memory.buffer,
+  addArrays(array1.byteOffset, array2.byteOffset, length),
+  length)
+```
+
+Note that what gets returned is the point in memory where the array has been
+stored, so we need to wrap it in an `Int32Array` object. And don't forget to
+free it!
+
+## Outro
+
+Well that was a lot of code.
+
+Obviously we can wrap this all up in some library code to hide the complexity,
+but what have we gained. I can't say for sure, but if the array calculations
+run at near native speed this could provide enormous performance gains.
+
+I could (and probably should) have used a `libc` implementation instead of
+implementing `malloc`. I decided not to because I think it kept the focus on
+the array passing problem, and not on integrating with libraries, which is a
+whole other discussion.
+
+Good luck with your coding.
